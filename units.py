@@ -58,6 +58,25 @@ class Unit:
     def take_damage(self, damage):
         self._hp = max(0, self._hp - damage)
 
+    def __add__(self, other):
+        if hasattr(other, 'apply'):
+            other.apply(self)
+            return self
+        return NotImplemented
+
+    def heal(self, amount):
+        self._hp += amount
+
+    def modify_attack(self, delta):
+        if self._attack > 0:
+            self._attack = max(1, self._attack + delta)
+        else:
+            self._attack += delta
+
+    def modify_armor(self, delta):
+        # Броня не может стать отрицательной
+        self._armor = max(0, self._armor + delta)
+
     def move(self, board, new_x, new_y):
         """
         Запрос на перемещение юнита по полю.
