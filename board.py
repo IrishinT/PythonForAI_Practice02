@@ -1,4 +1,5 @@
 import copy
+from landscape import Grass, Water, Mountain, Spikes
 
 class GameBoard:
     def __init__(self, cols, rows, max_units):
@@ -13,6 +14,8 @@ class GameBoard:
         self.__current_units = 0
         # Сетка: строки (y) на столбцы (x)
         self.__matrix = [[None] * cols for _ in range(rows)]
+        self.__landscape_matrix = [[Grass() for _ in range(cols)] for _ in range(rows)]
+
 
     @property
     def cols(self):
@@ -30,38 +33,69 @@ class GameBoard:
     def current_units(self):
         return self.__current_units
 
-    def get_unit(self, x, y):
-        """Получить юнита по клетке (x, y). Если мимо поля — вернет None."""
-        if 0 <= x < self.__cols and 0 <= y < self.__rows:
+    def is_valid_coord(self, x, y):
+        return 0 <= x < self.__cols and 0 <= y < self.__rows
+
+    def is_cell_empty(self, x, y):
+        if not self.is_valid_coord(x, y):
+            return False
+
+        return self.__matrix[y][x] is None
+
+    def can_unit_stand(self, x, y, unit=None):
+        if not self.is_valid_coord(x, y):
+            return False
+
+        landscape = self.__landscape_matrix[y][x]
+        return landscape.can_pass(unit)
+
+    def set_landscape(self, landscape_obj, x, y):
+        if self.is_valid_coord(x, y):
+            self.__landscape_matrix[y][x] = landscape_obj
+            return True
+
+        return False
+
+    def get_landscape(self, x, y):
+        if self.is_valid_coord(x, y):
+            return self.__landscape_matrix[y][x]
+
+        return None
+
+    def get_entity(self, x, y):
+
+        if self.is_valid_coord(x, y):
             return self.__matrix[y][x]
+
         return None
 
     def add_unit(self, unit, x, y):
-        """
-        Ставит юнита на клетку (x, y).
-        Проверяет лимит поля и свободность клетки.
-        """
         if self.__current_units >= self.__max_units:
-            print(f"Ошибка: достигнут лимит армии ({self.__max_units}).")
             return False
 
-        if not (0 <= x < self.__cols and 0 <= y < self.__rows):
-            print(f"Ошибка: координаты ({x}, {y}) вне карты.")
+        if not self.is_valid_coord(x, y):
             return False
 
-        if self.__matrix[y][x] is not None:
-            print(f"Ошибка: клетка ({x}, {y}) уже кем-то занята.")
+        if not self.is_cell_empty(x, y) or not self.can_unit_stand(x, y, unit):
             return False
 
         self.__matrix[y][x] = unit
         unit.pos_x = x
         unit.pos_y = y
         self.__current_units += 1
+
+        self.__landscape_matrix[y][x].on_enter(unit)
+        return True
+
+    def add_object(self, obj, x, y):
+        if not self.is_valid_coord(x, y) or not self.is_cell_empty(x, y):
+            return False
+
+        self.__matrix[y][x] = obj
         return True
 
     def remove_unit(self, x, y):
-        """Снимает юнита с клетки (x, y) и возвращает его."""
-        if not (0 <= x < self.__cols and 0 <= y < self.__rows):
+        if not self.is_valid_coord(x, y):
             return None
 
         unit = self.__matrix[y][x]
@@ -72,22 +106,11 @@ class GameBoard:
         self.__current_units -= 1
         return unit
 
-    def move_unit(self, unit, to_x, to_y):
-        """Перемещает юнита на новые координаты."""
-        if not (0 <= to_x < self.__cols and 0 <= to_y < self.__rows):
-            print(f"Ход ({to_x}, {to_y}) невозможен: за пределами карты.")
-            return False
-
-        if self.__matrix[to_y][to_x] is not None:
-            print(f"Ход ({to_x}, {to_y}) невозможен: клетка занята.")
-            return False
-
-        # Освобождаем старую позицию и занимаем новую
-        self.__matrix[unit.pos_y][unit.pos_x] = None
-        self.__matrix[to_y][to_x] = unit
-        unit.pos_x = to_x
-        unit.pos_y = to_y
-        return True
+    def get_unit(self, x, y):
+        """Получить юнита по клетке (x, y). Если мимо поля — вернет None."""
+        if 0 <= x < self.__cols and 0 <= y < self.__rows:
+            return self.__matrix[y][x]
+        return None
 
     def clone(self):
         """
@@ -98,12 +121,19 @@ class GameBoard:
     def display(self):
         """Вывод карты в терминал."""
         print(f"\nКарта {self.__cols}x{self.__rows} | Отрядов: {self.__current_units}/{self.__max_units}")
-        for row in self.__matrix:
-            row_str = ""
-            for cell in row:
-                if cell is None:
-                    row_str += " . "
-                else:
-                    row_str += f"[{cell.symbol}]"
+
+        print("#" * (self.__cols + 2))
+
+        for y in range(self.__rows):
+            row_str = "#"
+            for x in range(self.__cols):
+                entity = self.__matrix[y][x]
+                landscape = self.__landscape_matrix[y][x]
+
+                symbol = entity.symbol if entity is not None else landscape.symbol
+                row_str += symbol
+            row_str += "#"
             print(row_str)
+
+        print("#" * (self.__cols + 2))
         print()
