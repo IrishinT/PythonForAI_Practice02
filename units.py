@@ -55,6 +55,9 @@ class Unit:
     def attack_range(self):
         return self._attack_range
 
+    def take_damage(self, damage):
+        self._hp = max(0, self._hp - damage)
+
     def move(self, board, new_x, new_y):
         """
         Запрос на перемещение юнита по полю.
