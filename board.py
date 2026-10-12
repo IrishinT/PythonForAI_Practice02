@@ -112,6 +112,35 @@ class GameBoard:
             return self.__matrix[y][x]
         return None
 
+    def move_unit(self, unit, to_x, to_y):
+        """
+        Перемещение юнита.
+        """
+        if not self.is_valid_coord(to_x, to_y):
+            return False
+
+        if not self.can_unit_stand(to_x, to_y, unit):
+            return False
+
+        target_cell = self.__matrix[to_y][to_x]
+
+        if target_cell is not None:
+            if hasattr(target_cell, 'apply'):
+                # подобрать предмет
+                unit << target_cell
+                self.__matrix[to_y][to_x] = None
+            else:
+                return False
+
+        # Перемещение
+        self.__matrix[unit.pos_y][unit.pos_x] = None
+        self.__matrix[to_y][to_x] = unit
+        unit.pos_x = to_x
+        unit.pos_y = to_y
+
+        self.__landscape_matrix[to_y][to_x].on_enter(unit)
+        return True
+
     def clone(self):
         """
         Создает полную независимую копию поля и всех юнитов на нем (по ТЗ).
@@ -120,20 +149,29 @@ class GameBoard:
 
     def display(self):
         """Вывод карты в терминал."""
-        print(f"\nКарта {self.__cols}x{self.__rows} | Отрядов: {self.__current_units}/{self.__max_units}")
+        print(f"\nКарта {self.__cols}x{self.__rows} | Отрядов: {self.__current_units}/{self.__max_units}\n")
 
-        print("#" * (self.__cols + 2))
+        # Номера столбцов (координата X)
+        x_indices = "   " + "".join([f" {x:2}" for x in range(self.__cols)])
+        print(x_indices)
+
+        # Верхняя рамка
+        border = "   +" + "---" * self.__cols + "-+"
+        print(border)
 
         for y in range(self.__rows):
-            row_str = "#"
+            # Номер строки (координата Y) слева
+            row_str = f"{y:2} |"
             for x in range(self.__cols):
                 entity = self.__matrix[y][x]
                 landscape = self.__landscape_matrix[y][x]
 
+                # Если есть юнит/база/предмет — его символ, иначе ландшафт
                 symbol = entity.symbol if entity is not None else landscape.symbol
-                row_str += symbol
-            row_str += "#"
+                row_str += f"  {symbol}"
+            row_str += " |"
             print(row_str)
 
-        print("#" * (self.__cols + 2))
+        # Нижняя рамка
+        print(border)
         print()

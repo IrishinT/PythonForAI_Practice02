@@ -4,7 +4,7 @@ class Base:
     Отвечает за производство отрядов и учет живой силы.
     """
 
-    def __init__(self, x, y, hp=500, max_units=3, symbol='B'):
+    def __init__(self, x, y, hp=500, max_units=3, symbol='#'):
         """
         :param x: int, координата X на карте
         :param y: int, координата Y на карте

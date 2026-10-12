@@ -18,6 +18,8 @@ class Unit:
         self._attack_range = attack_range
         self._pos_x = x
         self._pos_y = y
+        self.base = None
+        self.owner = 1
 
     @property
     def pos_x(self):
@@ -56,9 +58,15 @@ class Unit:
         return self._attack_range
 
     def take_damage(self, damage):
+        if self._hp <= 0:
+            return
+
         self._hp = max(0, self._hp - damage)
 
-    def __add__(self, other):
+        if self._hp == 0 and self.base is not None:
+            self.base.notify_unit_death(self)
+
+    def __lshift__(self, other):
         if hasattr(other, 'apply'):
             other.apply(self)
             return self
@@ -76,6 +84,26 @@ class Unit:
     def modify_armor(self, delta):
         # Броня не может стать отрицательной
         self._armor = max(0, self._armor + delta)
+
+    def attack_target(self, target):
+        """
+        Атака по цели (юниту или базе).
+        """
+
+        dist = max(abs(self._pos_x - target.pos_x if hasattr(target, 'pos_x') else abs(self._pos_x - target.x)),
+                   abs(self._pos_y - target.pos_y if hasattr(target, 'pos_y') else abs(self._pos_y - target.y)))
+
+        if dist > self._attack_range:
+            return False
+
+        if self._attack < 0:
+            target.heal(abs(self._attack))
+            return True
+
+        target_armor = getattr(target, 'armor', 0)
+        actual_damage = max(1, self._attack - target_armor)
+        target.take_damage(actual_damage)
+        return True
 
     def move(self, board, new_x, new_y):
         """
