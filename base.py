@@ -4,14 +4,16 @@ class Base:
     Отвечает за производство отрядов и учет живой силы.
     """
 
-    def __init__(self, x, y, hp=500, max_units=3, symbol='#'):
+    def __init__(self, x, y, hp=500, max_units=3, symbol='#', name="Главная База"):
         """
+        :param name: str, название базы
         :param x: int, координата X на карте
         :param y: int, координата Y на карте
         :param hp: int, прочность базы
         :param max_units: int, максимальное число живых юнитов базы
         :param symbol: str, отображение на карте
         """
+        self._name = name
         self._x = x
         self._y = y
         self._hp = hp
@@ -26,6 +28,18 @@ class Base:
 
     @property
     def y(self):
+        return self._y
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def pos_x(self):
+        return self._x
+
+    @property
+    def pos_y(self):
         return self._y
 
     @property

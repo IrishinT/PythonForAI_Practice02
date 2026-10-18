@@ -5,12 +5,12 @@ class BaseController:
     """Контроллер для управления базой игрока."""
 
     RECRUIT_LIST = {
-        "1": ("Мечник", Swordsman),
-        "2": ("Копейщик", Spearman),
-        "3": ("Лучник", Bowman),
-        "4": ("Арбалетчик", Crossbowman),
-        "5": ("Боевой маг", AttackMage),
-        "6": ("Лекарь", HealerMage),
+        "S": ("Мечник", Swordsman),
+        "P": ("Копейщик", Spearman),
+        "B": ("Лучник", Bowman),
+        "C": ("Арбалетчик", Crossbowman),
+        "M": ("Боевой маг", AttackMage),
+        "H": ("Лекарь", HealerMage),
     }
 
     def __init__(self, base, board):
@@ -19,7 +19,7 @@ class BaseController:
 
     def get_status(self):
         """Возвращает текущую информацию о базе."""
-        return (f"База [{self._base.symbol}] | HP: {self._base.hp} | "
+        return (f"{self._base.name} [{self._base.symbol}] | HP: {self._base.hp} | "
                 f"Отряды: {self._base.current_units_count}/{self._base.max_units}")
 
     def hire_unit(self, unit_choice_key):
@@ -44,16 +44,6 @@ class UnitController:
     @property
     def selected_unit(self):
         return self._selected_unit
-
-    def select_unit(self, x, y):
-        """Выбрать юнит по координатам клетки."""
-        entity = self._board.get_entity(x, y)
-
-        if entity is not None and hasattr(entity, 'move'):
-            self._selected_unit = entity
-            return self._selected_unit
-        self._selected_unit = None
-        return None
 
     def deselect(self):
         """Снять выделение с текущего юнита."""
