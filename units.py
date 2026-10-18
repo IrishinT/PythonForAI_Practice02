@@ -163,3 +163,31 @@ class AttackMage(MageUnit):
 class HealerMage(MageUnit):
     def __init__(self, x=0, y=0):
         super().__init__("Лекарь", 'H', hp=60, armor=2, attack=-25, attack_range=100, x=x, y=y)
+
+
+class UnitFactory:
+    """Фабрика для создания и восстановления юнитов."""
+
+    _REGISTRY = {
+        "Swordsman": Swordsman,
+        "Spearman": Spearman,
+        "Bowman": Bowman,
+        "Crossbowman": Crossbowman,
+        "AttackMage": AttackMage,
+        "HealerMage": HealerMage
+    }
+
+    @classmethod
+    def create(cls, unit_type, x, y, hp = None, base=None):
+        unit_class = cls._REGISTRY.get(unit_type)
+        if not unit_class:
+            return None
+
+        unit = unit_class(x=x, y=y)
+
+        if hp is not None:
+            unit._hp = hp
+        if base is not None:
+            unit.base = base
+
+        return unit

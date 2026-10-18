@@ -51,3 +51,18 @@ class Mountain(Landscape):
 
     def can_pass(self, unit):
         return False
+
+class LandscapeFactory:
+    """Фабрика для создания ландшафта."""
+
+    _REGISTRY = {
+        "Water": Water,
+        "Mountain": Mountain,
+        "Spikes": Spikes,
+        "Grass": Grass
+    }
+
+    @classmethod
+    def create(cls, land_type):
+        land_class = cls._REGISTRY.get(land_type)
+        return land_class() if land_class else Grass()

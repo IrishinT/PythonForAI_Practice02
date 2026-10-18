@@ -1,10 +1,14 @@
 import random
 
+from gamestate import GameState
 from board import GameBoard
 from base import Base
 from controllers import BaseController, UnitController
-from landscape import Water, Mountain, Spikes
+from landscape import Grass, Water, Mountain, Spikes
 from neutral_objects import HealPotion, RustTrap
+from landscape import LandscapeFactory
+from neutral_objects import NeutralObjectFactory
+from units import UnitFactory
 
 
 class Game:
@@ -18,6 +22,7 @@ class Game:
         # Контроллеры
         self.base_ctrl = BaseController(self.base, self.board)
         self.unit_ctrl = UnitController(self.board)
+        self.turn = 1
 
         self._setup_map()
 
@@ -67,13 +72,17 @@ class Game:
 
     def start(self):
         """Основной цикл игры."""
-        print("Добро пожаловать в пошаговую стратегию!")
+        print("Добро пожаловать в игру!")
 
         while True:
             self.board.display()
             print(self.base_ctrl.get_status())
-            print("1 - Управление базой (нанять отряд)")
-            print("2 - Управление юнитом (выбрать и отдать приказ)")
+            print(f"Текущий ход: {self.turn}")
+            print("\nМеню:")
+            print("1 - Управление базой (найм отрядов)")
+            print("2 - Управление юнитами")
+            print("3 - Сохранить игру в JSON")
+            print("4 - Загрузить игру из JSON")
             print("0 - Выход из игры")
 
             choice = input("\nВыберите действие: ").strip()
@@ -82,6 +91,10 @@ class Game:
                 self._menu_base()
             elif choice == "2":
                 self._menu_unit()
+            elif choice == "3":
+                self.save_game()
+            elif choice == "4":
+                self.load_game()
             elif choice == "0":
                 print("Игра завершена.")
                 break
@@ -199,6 +212,82 @@ class Game:
                                     target.base.notify_unit_death(target)
                     else:
                         print("Не удалось атаковать.")
+
+    def save_game(self, filepath="savegame.json"):
+        state = GameState(save_name="Быстрое сохранение", turn=self.turn, base_hp=self.base.hp)
+        state.board_size = (self.board.cols, self.board.rows)
+
+        landscapes_data = []
+        objects_data = []
+
+        # Собираем ландшафт и нейтральные объекты за один проход по карте
+        for y in range(self.board.rows):
+            for x in range(self.board.cols):
+                land = self.board.get_landscape(x, y)
+                if not isinstance(land, Grass):
+                    landscapes_data.append({"type": land.__class__.__name__, "x": x, "y": y})
+
+                entity = self.board.get_entity(x, y)
+                if hasattr(entity, 'apply'):
+                    objects_data.append({"type": entity.__class__.__name__, "x": x, "y": y})
+
+        state.landscapes = landscapes_data
+        state.objects = objects_data
+
+        # Собираем юнитов базы
+        state.units = [
+            {"type": u.__class__.__name__, "x": u.pos_x, "y": u.pos_y, "hp": u.hp}
+            for u in self.base._units
+        ]
+
+        state.save_to_json(filepath)
+        print(f"Игра успешно сохранена в {filepath}")
+
+    def load_game(self, filepath="savegame.json"):
+        try:
+            state = GameState()
+            state.load_from_json(filepath)
+        except FileNotFoundError:
+            print(f"Файл {filepath} не найден.")
+            return
+
+        # Очистка карты
+        for y in range(self.board.rows):
+            for x in range(self.board.cols):
+                self.board.set_landscape(Grass(), x, y)
+                self.board.remove_unit(x, y)
+
+        # Восстановление ландшафта через фабрику
+        for item in state.landscapes:
+            land = LandscapeFactory.create(item["type"])
+            self.board.set_landscape(land, item["x"], item["y"])
+
+        # Восстановление предметов через фабрику
+        for item in state.objects:
+            obj = NeutralObjectFactory.create(item["type"])
+            if obj:
+                self.board.add_object(obj, item["x"], item["y"])
+
+        # Восстановление базы
+        self.base._hp = state.base_hp
+        self.base._units.clear()
+        self.board.add_object(self.base, self.base.x, self.base.y)
+
+        # Восстановление юнитов через фабрику
+        for data in state.units:
+            unit = UnitFactory.create(
+                unit_type=data["type"],
+                x=data["x"],
+                y=data["y"],
+                hp=data["hp"],
+                base=self.base
+            )
+            if unit:
+                self.board.add_unit(unit, unit.pos_x, unit.pos_y)
+                self.base._units.append(unit)
+
+        self.turn = state.turn
+        print(f"Игра загружена (Ход: {self.turn}, HP базы: {self.base.hp})")
 
 
 if __name__ == "__main__":

@@ -60,3 +60,19 @@ class CurseTotem(NeutralObject):
 
     def apply(self, unit):
         unit.modify_attack(-self._attack_penalty)
+
+class NeutralObjectFactory:
+    """Фабрика для создания нейтральных объектов."""
+
+    _REGISTRY = {
+        "HealPotion": HealPotion,
+        "RustTrap": RustTrap,
+        "AttackBuff": AttackBuff,
+        "ArmorBuff": ArmorBuff,
+        "CurseTotem": CurseTotem
+    }
+
+    @classmethod
+    def create(cls, obj_type):
+        obj_class = cls._REGISTRY.get(obj_type)
+        return obj_class() if obj_class else None
